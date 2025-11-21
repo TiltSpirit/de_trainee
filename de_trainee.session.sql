@@ -22,14 +22,15 @@ JOIN rental as r
 on i.inventory_id = r.inventory_id
 GROUP BY actor.actor_id
 ORDER BY n_rented DESC
---completed
+limit 10
+--fixed
 
 --Output the category of movies on which the most money was spent.
 SELECT c.name, sum(p.amount) as expenses
 FROM category as c
 JOIN film_category as fc
 on c.category_id = fc.category_id
-LEFT JOIN film as f
+JOIN film as f
 on fc.film_id = f.film_id
 JOIN inventory as i
 on f.film_id = i.film_id
@@ -39,7 +40,8 @@ JOIN payment as p
 on r.rental_id = p.rental_id
 GROUP BY c.name
 ORDER BY expenses DESC
---not sure
+LIMIT 1
+--fixed
 
 --Print the names of movies that are not in the inventory. Write a query without using the IN operator.
 SELECT film.title
@@ -52,7 +54,8 @@ where i.inventory_id is Null
 --Output the top 3 actors who have appeared the most in movies in the “Children” category.
 -- If several actors have the same number of movies, output all of them.
 with children_movie_stars As (
-    SELECT a.actor_id, first_name, last_name, c.name, count(c.name) as n_per_genre
+    SELECT a.actor_id, first_name, last_name, c.name, count(c.name) as n_per_genre,
+    dense_rank() over (ORDER BY count(c.name) DESC) as top_actors
     FROM actor as a
     JOIN film_actor as fa
     on a.actor_id = fa.actor_id
@@ -61,28 +64,27 @@ with children_movie_stars As (
     JOIN category as c
     on fc.category_id = c.category_id and c.name like '%Children%'
     GROUP BY a.actor_id, first_name, last_name, c.name
-    ORDER BY n_per_genre DESC
 )
-SELECT first_name, last_name, n_per_genre,
-    dense_rank() over (ORDER BY n_per_genre DESC) as top_actors
+SELECT first_name, last_name, n_per_genre    
 from children_movie_stars
---ну это кринж что нельзя фильтровать результаты оконной функции, потом перепишу
+where top_actors <= 3
+ORDER BY n_per_genre DESC
+--fixed
 
 
 
 --Output cities with the number of active and inactive customers (active - customer.active = 1).
 --Sort by the number of inactive customers in descending order.
-SELECT city, sum(c.active) as active, count(*) as n_customers, (count(*) - sum(c.active)) as inactive
+SELECT city,  sum(c.active) as active, (count(*) - sum(c.active)) as inactive --count(*) as n_customers
 from city
 JOIN address as ad 
 on city.city_id = ad.city_id
-JOIN store as st
-on ad.address_id = st.address_id
 JOIN customer as c
-on st.store_id = c.store_id
+on ad.address_id = c.address_id
 GROUP BY city.city
 ORDER BY inactive DESC
---completed
+--hopefully fixed
+
 
 
 --Output the category of movies that have the highest number of total
@@ -111,11 +113,3 @@ GROUP by ct.name, c.city
 ORDER by c.city ASC, rent_minutes DESC
 
 --in progress
-
---я изначально из условия подумал, что надо вывести категории, которые начинаются на букву "а" для городов с дефисом в названии.
---потом после "Do the same for cities that have a “-” in them" понял, что походу надо из всех категорий, для городов на "а" И для всех 
---остальных, в которых есть дефис. CTE завести нельзя. и вот можно ли сделать подзапрос. будет ли это все еще подходить под условие
---"Write everything in one query." ?
-
-
-
