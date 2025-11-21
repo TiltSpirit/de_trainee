@@ -23,6 +23,9 @@ on i.inventory_id = r.inventory_id
 GROUP BY actor.actor_id
 ORDER BY n_rented DESC
 --completed
+/*------------------------------------
+Не выполнено условие "Output the 10 actors"
+*/------------------------------------
 
 --Output the category of movies on which the most money was spent.
 SELECT c.name, sum(p.amount) as expenses
@@ -39,7 +42,10 @@ JOIN payment as p
 on r.rental_id = p.rental_id
 GROUP BY c.name
 ORDER BY expenses DESC
---not sure
+/*------------------------------------
+Не выполнено условие "Output the category".
+Дополнительно можно подумать над необходимостью именно лефт джойна
+*/------------------------------------
 
 --Print the names of movies that are not in the inventory. Write a query without using the IN operator.
 SELECT film.title
@@ -70,6 +76,7 @@ from children_movie_stars
 
 
 
+
 --Output cities with the number of active and inactive customers (active - customer.active = 1).
 --Sort by the number of inactive customers in descending order.
 SELECT city, sum(c.active) as active, count(*) as n_customers, (count(*) - sum(c.active)) as inactive
@@ -83,6 +90,9 @@ on st.store_id = c.store_id
 GROUP BY city.city
 ORDER BY inactive DESC
 --completed
+/*------------------------------------
+Перепроверь логику джойнов - точно ли она отвечает условию
+*/------------------------------------
 
 
 --Output the category of movies that have the highest number of total
@@ -118,4 +128,6 @@ ORDER by c.city ASC, rent_minutes DESC
 --"Write everything in one query." ?
 
 
-
+/*------------------------------------
+попробуй разбить на две задачи и потом думать как написать два решения в один запрос
+*/------------------------------------
