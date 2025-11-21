@@ -88,10 +88,34 @@ ORDER BY inactive DESC
 --Output the category of movies that have the highest number of total
 --rental hours in the city (customer.address_id in this city) and that start with the letter “a”.
 --Do the same for cities that have a “-” in them. Write everything in one query.
-SELECT *
-from category as c
+SELECT name, c.city, sum(r.return_date - r.rental_date) as rent_sum, 
+    cast(sum(extract(epoch from (r.return_date - r.rental_date)) / 60) as integer) as rent_minutes, --rent_sum оставил временно для наглядности 
+    rank() OVER (partition by c.city ORDER BY cast(sum(extract(epoch from (r.return_date - r.rental_date)) / 60) as integer) DESC)
+from category as ct
 JOIN film_category as fc
-on c.category_id = fc.category_id
+on ct.category_id = fc.category_id
 JOIN film as f
 on fc.film_id = f.film_id
+JOIN inventory as i
+on f.film_id = i.film_id
+JOIN rental as r
+on i.inventory_id = r.inventory_id and (r.rental_date is not Null and r.return_date is not Null)
+JOIN customer as cs
+on r.customer_id = cs.customer_id
+join address as a
+on cs.address_id = a.address_id
+JOIN city as c
+on a.city_id = c.city_id
+where (c.city like 'A%') or (c.city like '%-%')
+GROUP by ct.name, c.city
+ORDER by c.city ASC, rent_minutes DESC
+
 --in progress
+
+--я изначально из условия подумал, что надо вывести категории, которые начинаются на букву "а" для городов с дефисом в названии.
+--потом после "Do the same for cities that have a “-” in them" понял, что походу надо из всех категорий, для городов на "а" И для всех 
+--остальных, в которых есть дефис. CTE завести нельзя. и вот можно ли сделать подзапрос. будет ли это все еще подходить под условие
+--"Write everything in one query." ?
+
+
+
