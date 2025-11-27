@@ -43,6 +43,8 @@ ORDER BY expenses DESC
 LIMIT 1
 --fixed
 
+    ---- что будет в случае одинаковых названий у фильмов?
+    
 --Print the names of movies that are not in the inventory. Write a query without using the IN operator.
 SELECT film.title
 FROM film
@@ -71,6 +73,7 @@ where top_actors <= 3
 ORDER BY n_per_genre DESC
 --fixed
 
+    ---- c.name в группировке избыточен, тк категория будет всегда одна
 
 
 --Output cities with the number of active and inactive customers (active - customer.active = 1).
@@ -85,6 +88,8 @@ GROUP BY city.city
 ORDER BY inactive DESC
 --hopefully fixed
 
+    ---- Попробуй решить с case.Также группировка не очень корректная, возможна путаница из-за одинаковых имён - лучше использовать алиасы.
+    ---- Что будет с городами с одинаковыми названиями?
 
 
 --Output the category of movies that have the highest number of total
@@ -111,7 +116,10 @@ FROM (SELECT name, c.city, sum(r.return_date - r.rental_date) as rent_sum,
     on a.city_id = c.city_id
     where (c.city like 'A%') or (c.city like '%-%')
     GROUP by ct.name, c.city
-    ORDER by c.city ASC, rent_hours DESC)
+    ORDER by c.city ASC, rent_hours DESC) ---- влияет ли этот ордер бай на внешний запрос?
 where rank = 1
 
 --in progress
+
+    ---- совпадают ли единицы измерений в рамках запроса?
+    ---- трактовать задачу можно по-разному, но давай попробуем вывести топ 1 в одной категории и топ 1 в другой
