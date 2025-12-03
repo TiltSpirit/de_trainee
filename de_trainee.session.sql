@@ -75,21 +75,31 @@ ORDER BY n_per_genre DESC
 
 --Output cities with the number of active and inactive customers (active - customer.active = 1).
 --Sort by the number of inactive customers in descending order.
-SELECT city,  sum(c.active) as active, (count(*) - sum(c.active)) as inactive --count(*) as n_customers
+SELECT city.city_id, city,
+sum(CASE 
+    WHEN c.active = 1 then 1
+    else 0
+    end) as active_c,
+sum(CASE 
+    WHEN c.active = 0 then 1
+    else 0
+    end) as inactive_c
 from city
 JOIN address as ad 
 on city.city_id = ad.city_id
 JOIN customer as c
 on ad.address_id = c.address_id
-GROUP BY city.city
-ORDER BY inactive DESC
---hopefully fixed
-
+GROUP BY city.city_id, city.city
+ORDER BY inactive_c DESC, city.city
+--used case
 
 
 --Output the category of movies that have the highest number of total
 --rental hours in the city (customer.address_id in this city) and that start with the letter “a”.
 --Do the same for cities that have a “-” in them. Write everything in one query.
+
+
+--all categories for cities that start with "A" and for the ones that have "-" in them
 SELECT name, city, rent_hours
 FROM (SELECT name, c.city, sum(r.return_date - r.rental_date) as rent_sum, 
     cast(sum(extract(epoch from (r.return_date - r.rental_date)) / 60 / 60) as integer) as rent_hours, --rent_sum оставил временно для наглядности 
@@ -110,8 +120,78 @@ FROM (SELECT name, c.city, sum(r.return_date - r.rental_date) as rent_sum,
     JOIN city as c
     on a.city_id = c.city_id
     where (c.city like 'A%') or (c.city like '%-%')
-    GROUP by ct.name, c.city
-    ORDER by c.city ASC, rent_hours DESC)
+    GROUP by ct.name, c.city)
 where rank = 1
 
---in progress
+
+--categories that start with "A" for all cities
+SELECT name, city, rent_hours
+FROM (SELECT name, c.city, sum(r.return_date - r.rental_date) as rent_sum, 
+    cast(sum(extract(epoch from (r.return_date - r.rental_date)) / 60 / 60) as integer) as rent_hours, --rent_sum оставил временно для наглядности 
+    rank() OVER (partition by c.city ORDER BY cast(sum(extract(epoch from (r.return_date - r.rental_date)) / 60) as integer) DESC)
+    from category as ct
+    JOIN film_category as fc
+    on ct.category_id = fc.category_id
+    JOIN film as f
+    on fc.film_id = f.film_id
+    JOIN inventory as i
+    on f.film_id = i.film_id
+    JOIN rental as r
+    on i.inventory_id = r.inventory_id and (r.rental_date is not Null and r.return_date is not Null)
+    JOIN customer as cs
+    on r.customer_id = cs.customer_id
+    JOIN address as a
+    on cs.address_id = a.address_id
+    JOIN city as c
+    on a.city_id = c.city_id
+    where ct.name like 'A%'
+    GROUP by ct.name, c.city)
+where rank = 1
+
+
+--categories on "a" for the cities that start with "a", and all categories for cities with dash
+SELECT name, city, rent_hours
+FROM (SELECT name, c.city, sum(r.return_date - r.rental_date) as rent_sum, 
+    cast(sum(extract(epoch from (r.return_date - r.rental_date)) / 60 / 60) as integer) as rent_hours, --rent_sum оставил временно для наглядности 
+    rank() OVER (partition by c.city ORDER BY cast(sum(extract(epoch from (r.return_date - r.rental_date)) / 60) as integer) DESC)
+    from category as ct
+    JOIN film_category as fc
+    on ct.category_id = fc.category_id
+    JOIN film as f
+    on fc.film_id = f.film_id
+    JOIN inventory as i
+    on f.film_id = i.film_id
+    JOIN rental as r
+    on i.inventory_id = r.inventory_id and (r.rental_date is not Null and r.return_date is not Null)
+    JOIN customer as cs
+    on r.customer_id = cs.customer_id
+    JOIN address as a
+    on cs.address_id = a.address_id
+    JOIN city as c
+    on a.city_id = c.city_id
+    where (c.city like 'A%') and (ct.name like 'A%')
+    GROUP by ct.name, c.city)
+where rank = 1
+UNION
+SELECT name, city, rent_hours
+FROM (SELECT name, c.city, sum(r.return_date - r.rental_date) as rent_sum, 
+    cast(sum(extract(epoch from (r.return_date - r.rental_date)) / 60 / 60) as integer) as rent_hours, --rent_sum оставил временно для наглядности 
+    rank() OVER (partition by c.city ORDER BY cast(sum(extract(epoch from (r.return_date - r.rental_date)) / 60) as integer) DESC)
+    from category as ct
+    JOIN film_category as fc
+    on ct.category_id = fc.category_id
+    JOIN film as f
+    on fc.film_id = f.film_id
+    JOIN inventory as i
+    on f.film_id = i.film_id
+    JOIN rental as r
+    on i.inventory_id = r.inventory_id and (r.rental_date is not Null and r.return_date is not Null)
+    JOIN customer as cs
+    on r.customer_id = cs.customer_id
+    JOIN address as a
+    on cs.address_id = a.address_id
+    JOIN city as c
+    on a.city_id = c.city_id
+    where (c.city like '%-%')
+    GROUP by ct.name, c.city)
+where rank = 1
