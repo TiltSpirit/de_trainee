@@ -156,3 +156,94 @@ SELECT name, city, rent_hours, 'dash_cities' as condition
 FROM rent_table
 where top_category = 1 and city like '%-%'
 ORDER BY condition, city, rent_hours DESC
+
+
+SELECT *
+FROM category
+
+--function, that returns a wanted amount of films in specific genre
+CREATE function movie_display(
+    x_category_name text,
+    number_of_movies integer default 5
+)
+RETURNS table(
+    category_name text,
+    film_title text,
+    film_release_year integer,
+    rating mpaa_rating
+)
+language SQL
+AS $$
+    SELECT c.name::text, f.title::text, f.release_year::integer, f.rating
+    FROM category as c
+    JOIN film_category as fc
+    on c.category_id = fc.category_id
+    JOIN film as f
+    on fc.film_id = f.film_id
+    where c.name = x_category_name
+    order by f.title ASC
+    LIMIT number_of_movies;
+$$;
+SELECT * 
+FROM movie_display('Action', 10)
+
+drop function movie_display
+
+--stored procedure and temp table task simultaneously
+--actors whose movies rented the most
+CREATE or replace procedure most_rented_actors(
+    number_of_actors integer)
+language plpgsql
+AS $$
+begin
+    CREATE temp table if not exists temp_most_rented_actors(
+        actor_id integer,
+        first_name varchar(255),
+        last_name varchar(255),
+        n_rented integer
+    );
+    truncate table temp_most_rented_actors;
+    insert into temp_most_rented_actors(actor_id, first_name, last_name, n_rented)
+    SELECT actor.actor_id, actor.first_name, actor.last_name, count(r.rental_id) as n_rented
+    FROM actor
+    JOIN film_actor as fa
+    ON actor.actor_id = fa.actor_id
+    JOIN film as f
+    on fa.film_id = f.film_id
+    JOIN inventory as i
+    on f.film_id = i.film_id
+    JOIN rental as r
+    on i.inventory_id = r.inventory_id
+    GROUP BY actor.actor_id
+    ORDER BY n_rented DESC
+    limit number_of_actors;
+end;
+$$;
+--
+call most_rented_actors(20);
+select *
+from temp_most_rented_actors
+
+
+--trigger that validates date of new data
+
+CREATE or replace function date_validator()
+returns trigger
+language plpgsql
+as $$
+begin
+    if NEW.payment_date > NOW() then
+        raise exception 'wrong date mate, that havent happened yet';
+    end if;
+    if NEW.payment_date is Null then
+        NEW.payment_date = NOW();
+    end if;
+    return NEW;
+end;
+$$;
+
+CREATE trigger trg_payment_date
+before update or insert on payment
+for each row
+execute function date_validator();
+--
